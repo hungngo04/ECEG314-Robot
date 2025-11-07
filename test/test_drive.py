@@ -1,6 +1,6 @@
 import time
 import math
-from drivetest import RobotDrive
+from test.drivetest import RobotDrive
 
 robot = RobotDrive()
 
