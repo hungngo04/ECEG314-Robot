@@ -2,7 +2,7 @@ from machine import Pin
 import neopixel
 
 class LEDController:
-    def __init__(self, pin_num, num_pixels):
+    def __init__(self, pin_num=18, num_pixels=2):
         self.pixels = neopixel.NeoPixel(Pin(pin_num), num_pixels)
         self.num_pixels = num_pixels
 
