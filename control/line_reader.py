@@ -9,24 +9,20 @@ class LineReader:
         self.scaling_factor = 0.001
 
     def get_distance(self):
-        while True:        
-            distance, darkness, confidence = self.reflectance_sample(pin = [Pin(0), Pin(1), Pin(2), Pin(3), Pin(4), Pin(5)], 
-                                        samples = 40, 
-                                        delay_us = 15)
-            
-            distance *= -1
-            
-            print(f"Position: {distance} mm")
-            time.sleep(0.5)
+        distance, darkness, confidence = self.reflectance_sample(pin = [Pin(0), Pin(1), Pin(2), Pin(3), Pin(4), Pin(5)], 
+                                    samples = 40, 
+                                    delay_us = 15)
+        
+        distance *= -1
+
+        return distance, confidence
 
     def get_darkness(self):
-        while True:
-            distance, darkness, confidence = self.reflectance_sample(pin = [Pin(0), Pin(1), Pin(2), Pin(3), Pin(4), Pin(5)], 
-                                        samples = 40, 
-                                        delay_us = 15)
-            
-            print(f"Darkness: {darkness}, Confidence: {confidence}")
-            time.sleep(0.5)
+        distance, darkness, confidence = self.reflectance_sample(pin = [Pin(0), Pin(1), Pin(2), Pin(3), Pin(4), Pin(5)],
+                                    samples = 40,
+                                    delay_us = 15)
+
+        return darkness, confidence
 
     def reflectance_sample(self, pin, samples, delay_us):
         decay_list = []

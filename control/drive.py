@@ -1,6 +1,6 @@
 import machine
 
-class RobotDrive():
+class Drive():
     def __init__(self):
         self.M1A = machine.PWM(machine.Pin(8))
         self.M1B = machine.PWM(machine.Pin(9))

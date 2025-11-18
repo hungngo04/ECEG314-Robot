@@ -2,7 +2,7 @@ from machine import Pin
 import time
 
 from control.ultrasound_sensor import UltrasoundSensor
-from control.robot_drive import RobotDrive
+from control.drive import RobotDrive
 from control.led_controller import LEDController
 
 class BullseyeController:

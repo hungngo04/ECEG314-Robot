@@ -2,7 +2,7 @@ from machine import Pin
 import time
 from control.ultrasound_sensor import UltrasoundSensor
 from control.line_reader import LineReader
-from control.robot_drive import RobotDrive
+from control.drive import RobotDrive
 
 class RaceController:
     def __init__(self, ultrasound_sensor, line_reader, robot_drive):
