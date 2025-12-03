@@ -29,3 +29,14 @@ python3 -m mpremote fs rm -r : + \
   
 min: [135, 150, 135, 165, 120, 120]
 max: [600, 600, 600, 600, 600, 600]
+
+
+To run the code, you just need to change the class name on main.py, then run ./sync.sh (for Mac) or sync.ps1 (for Windows) to copy everything to the robot.
+
+To run it:
+.\sync.ps1
+
+If you get an execution policy error, run this
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+Then try .\sync.ps1 again.
