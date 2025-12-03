@@ -1,3 +1,12 @@
+from machine import ADC, Pin
+import time
+import neopixel
+import math
+import random
+from control.line_reader import LineReader
+from control.drive import Drive
+from robot_olympics.line_following import LineFollowing
+
 note_data = [
     {"note": "C4", "frequency": 261.63, "color_name": "Red", "rgb": (255, 0, 0), "distance_cm": 40},
     {"note": "C#4/Db4", "frequency": 277.18, "color_name": "Orange-Red", "rgb": (255, 69, 0), "distance_cm": 35},
@@ -12,15 +21,6 @@ note_data = [
     {"note": "A#4/Bb4", "frequency": 466.16, "color_name": "Violet", "rgb": (139, 0, 255), "distance_cm": 4},
     {"note": "B4", "frequency": 493.88, "color_name": "Magenta", "rgb": (255, 0, 255), "distance_cm": 3}
 ]
-
-from machine import ADC, Pin
-import time
-import neopixel
-import math
-import random
-from control.line_reader import LineReader
-from control.robot_drive import RobotDrive
-from control.line_following import LineFollowing
 
 speaker = machine.PWM(machine.Pin(22))
 
@@ -104,34 +104,46 @@ notes_to_play = [
     {"id": 74, "freq": 329.63, "time": 1}, #28s
     {"id": 75, "freq": 164.81, "time": 0.5}
 ]
+
 def main():
-    for notes in notes_to_play:
-        dance()
+    for note in notes_to_play:
+        dance(note)
         current_time = time.time()
 
-def dance():
+def dance(note):
     line_reader = LineReader()
+    robot_drive = Drive()
+
+    if note['freq'] > 0:
+        speaker.freq(int(note['freq']))
+        speaker.duty_u16(32768)
+    else:
+        speaker.duty_u16(0)
+
+    note_start = time.time()
 
     if line_spotted == False:
         i = random.randint(0,1)
     else:
         i = 2
+    if i==0:
+        while((time.time() - note_start) < note['time']):
+            robot_drive.drive(0, random.randint(-180, 180))
+            time.sleep_ms(10)
     if i==1:
-        while(time.tick_diff(current_time, start_time)<notes_to_play['time']):
-            robot_drive(random.randint(10000,65535),random.randint(0,math.radians(360)))
-            darkness = line_reader.get_darkness()
-            if darkness > 300:
+        while((time.time() - note_start) < note['time']):
+            robot_drive.drive(random.randint(10, 65), random.randint(-180, 180))
+            darkness, darkness_confidence = line_reader.get_darkness()
+            if darkness > 0.3:
                 i = 2
-                robot_drive(35000, math.radians(180))
+                robot_drive.drive(35, 180)
+            time.sleep_ms(10)
     if i==2:
-        while(time.tick_diff(current_time, start_time)<notes_to_play['time']):
-            robot_drive(0,random.randint(0,math.radians(360)))
-            
+        while((time.time() - note_start) < note['time']):
+            robot_drive.drive(0, random.randint(-180, 180))
+            time.sleep_ms(10)
 
-
-
-
-            
+    speaker.duty_u16(0)
             
     # if i == 0:
     #     while(time.tick_diff(current_time, start_time)<(random.randint(1,5)/2)):

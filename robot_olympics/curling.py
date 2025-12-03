@@ -1,58 +1,88 @@
-from machine import Pin
 import time
-
+from machine import Pin
+from control.line_reader import LineReader
+from control.drive import Drive
 from control.ultrasound_sensor import UltrasoundSensor
-from control.drive import RobotDrive
-from control.led_controller import LEDController
 
-class BullseyeController:
-    def __init__(self, front_sensor, start_sensor, robot_drive, led_controller):
-        self.front_sensor = front_sensor
-        self.start_sensor = start_sensor
-        self.robot = robot_drive
-        self.leds = led_controller
+class Curling:
+    def __init__(self):
+        self.lr = LineReader()
+        self.drive = Drive()
+        self.front_sensor = UltrasoundSensor(
+            trigger_pin=Pin(28, Pin.OUT),
+            echo_pin=Pin(7, Pin.IN)
+        )
+        self.led_distance = Pin(20, Pin.OUT)
+        self.led_complete = Pin(21, Pin.OUT)
+        # self.drive.straight_bias = -1.2
 
-    def wait_for_start(self, gate_distance_threshold = 30):
+    def run(self):
+        target_distance = 45
+        velocity = 20
+
+        time.sleep_ms(3000)
+
+        self.follow_line_phase(velocity)
+        self.straight_to_target(target_distance, velocity)
+
+        self.led_complete.high()
+        print("Curling complete!")
+
+    def follow_line_phase(self, velocity):
+        print("Phase 1: Following line")
+        last_offset = 0.0
+        last_time_us = time.ticks_us() - 10000
+        Kp = 0.35
+        Kd = 0.01
+
         while True:
-            distance = self.start_sensor.get_distance()
-            if distance > gate_distance_threshold:
-                return True
-            
-    def drive_to_target(self, target_distance_cm, speed = 50, stop_margin = 2):
-        while True:
-            current_distance = self.front_sensor.get_distance()
+            current_time_us = time.ticks_us()
+            dt_us = time.ticks_diff(current_time_us, last_time_us)
+            dt_s = dt_us / 1000000.0
+            last_time_us = current_time_us
 
-            if (current_distance == -1):
-                continue
+            error, confidence = self.lr.get_distance()
+            darkness, darkness_confidence = self.lr.get_darkness()
 
-            if (current_distance <= target_distance_cm + stop_margin):
-                self.robot.drive(0, 0)
-                self.leds.set_color((0, 255, 0))
+            if confidence < 0.2 or darkness < 0.1:
+                print("End of line detected")
+                self.drive.drive(0, 0)
+                time.sleep_ms(500)
                 break
 
-            if (current_distance < 10):
-                self.leds.set_color((255, 0, 0))
+            derivative = 0
+            if dt_s > 0:
+                derivative = (error - last_offset) / dt_s
 
-            self.robot.drive(speed, 0)
-            time.sleep(0.05)
+            angular_velocity = (Kp * error) + (Kd * derivative)
+            last_offset = error
 
-if __name__ == "__main__":
-    front_sensor = UltrasoundSensor(
-        trigger_pin = Pin(28, Pin.OUT),
-        echo_pin = Pin(7, Pin.IN)
-    )
+            self.drive.drive(velocity, angular_velocity)
+            time.sleep_ms(1)
 
-    start_sensor = UltrasoundSensor(
-        trigger_pin = Pin(28, Pin.OUT),
-        echo_pin = Pin(7, Pin.IN)
-    )
+    def straight_to_target(self, target_distance, velocity):
+        print("Phase 2: Going straight to target")
 
-    leds = LEDController()
-    robot = RobotDrive()
+        while True:
+            distance = self.front_sensor.get_distance()
 
-    bullseye = BullseyeController(front_sensor, start_sensor, robot, leds)
+            if distance < 90:
+                self.led_distance.high()
 
-    target_distance = 225 # TODO: Adjust this value
+            print(f"Distance: {distance} cm")
 
-    bullseye.wait_for_start()
-    bullseye.drive_to_target(target_distance_cm = target_distance, speed = 50)
+            if distance <= target_distance:
+                self.drive.drive(0, 0)
+                print(f"Target reached at {distance} cm")
+                break
+
+            adjusted_velocity = velocity
+            if distance < 60:
+                adjusted_velocity = velocity * 0.5
+            if distance < 50:
+                adjusted_velocity = velocity * 0.3
+
+            self.drive.drive(adjusted_velocity, 0)
+            time.sleep_ms(10)
+
+        self.drive.drive(0, 0)

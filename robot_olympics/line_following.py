@@ -14,14 +14,24 @@ class LineFollowing:
             echo_pin=Pin(7, Pin.IN)
         )
 
-    def follow_line(self):
-        velocity = 25
+    def run(self):
+        velocity = 100
 
-        time.sleep_ms(3000)
-        last_offset = 0.0
+        BASE_VELOCITY = 25
+        BASE_KP = 0.15
+        BASE_KD = 0.025
+        BASE_KI = 0.005
+
+        velocity_scale = velocity / BASE_VELOCITY
+        Kp = BASE_KP * velocity_scale
+        Kd = BASE_KD * velocity_scale * 2.0
+        Ki = BASE_KI * (velocity_scale ** 0.5)
+
+        max_integral = 50
+
+        last_error = 0.0
+        integral_error = 0.0
         last_time_us = time.ticks_us() - 10000
-        Kp = 0.35
-        Kd = 0.01
 
         while (True):
             distance = self.ultrasound_sensor.get_distance()
@@ -35,15 +45,28 @@ class LineFollowing:
             error, confidence = self.lr.get_distance()
             darkness, darkness_confidence = self.lr.get_darkness()
 
+            # PID calculations
+            # Proportional term
+            proportional = Kp * error
+
+            # Integral term (with anti-windup)
+            integral_error += error * dt_s
+            integral_error = max(-max_integral, min(max_integral, integral_error))  # Clamp
+            integral = Ki * integral_error
+
+            # Derivative term
             derivative = 0
             if dt_s > 0:
-                derivative = (error - last_offset) / dt_s
+                derivative = (error - last_error) / dt_s
+            derivative_term = Kd * derivative
 
-            angular_velocity = (Kp * error) + (Kd * derivative)
-            # print(f"Error: {error} - Confidence: {confidence} - Darkness: {darkness}")
-            last_offset = error
+            # Combined PID output
+            angular_velocity = proportional + integral + derivative_term
 
-            if (distance <= 10):
+            # print(f"Error: {error} - P: {proportional:.2f} - I: {integral:.2f} - D: {derivative_term:.2f}")
+            last_error = error
+
+            if (distance <= 20):
                 print("Obstacle detected - stopping")
                 self.drive.drive(0, 0)
             elif (confidence < 0.4):
