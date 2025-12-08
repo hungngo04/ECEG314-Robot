@@ -30,11 +30,11 @@ class Drive():
                 self.M1A.duty_u16(duty_cycle_left)
                 self.M1B.duty_u16(0)
                 self.M2A.duty_u16(0)
-                self.M2B.duty_u16(-duty_cycle_left)
+                self.M2B.duty_u16(duty_cycle_left)  # Fixed: removed negative
             else:
                 self.M1A.duty_u16(0)
                 self.M1B.duty_u16(duty_cycle_right)
-                self.M2A.duty_u16(-duty_cycle_right)
+                self.M2A.duty_u16(duty_cycle_right)  # Fixed: removed negative
                 self.M2B.duty_u16(0)
         else:
             if v_left >= 0:
@@ -49,3 +49,14 @@ class Drive():
             else:
                 self.M2B.duty_u16(duty_cycle_right)
                 self.M2A.duty_u16(0)
+
+    def cleanup(self):
+        """Stop all motors to prevent state persistence"""
+        # Stop all motors by setting duty cycle to 0
+        self.M1A.duty_u16(0)
+        self.M1B.duty_u16(0)
+        self.M2A.duty_u16(0)
+        self.M2B.duty_u16(0)
+
+        # Note: Not calling deinit() because PWM objects would need
+        # to be recreated, which doesn't happen between runs

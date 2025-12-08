@@ -73,6 +73,12 @@ class LineReader:
         mean = sum(data) / n
         return sum((x - mean) ** 2 for x in data) / n
 
+    def cleanup(self):
+        """Reset pins to default input state to prevent state persistence"""
+        for pin_num in [0, 1, 2, 3, 4, 5]:
+            p = Pin(pin_num)
+            p.init(Pin.IN, pull=None)
+
 if __name__=="__main__":    
     line_reader = LineReader()
     line_reader.get_darkness()
